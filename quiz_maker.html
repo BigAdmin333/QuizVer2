@@ -1,31 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>MCQ Quiz Maker</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <title>Quiz Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+    <style>
+        /* ... (keep all the CSS from your provided code) ... */
+    </style>
 </head>
-<body class="bg-gradient-to-r from-purple-500 to-pink-500 min-h-screen">
-    <div class="container mx-auto p-8">
-        <h1 class="text-4xl font-bold text-white mb-8">Quiz Maker</h1>
-        
-        <div class="bg-white rounded-lg shadow-xl p-6">
-            <textarea id="questionInput" 
-                      class="w-full h-48 p-4 border-2 border-gray-300 rounded-lg mb-4"
-                      placeholder="Enter questions in format:
-                      Question text?
-                      . Option 1
-                      . Option 2*
-                      . Option 3
-                      ..."></textarea>
-                      
-            <button onclick="parseAndSave()" 
-                    class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition">
-                Generate Quiz
-            </button>
+<body class="p-4">
+    <div class="container">
+        <!-- Quiz Title Section -->
+        <div class="card shadow mb-4 title-section">
+            <!-- ... (keep the title section HTML from your code) ... -->
+        </div>
+
+        <!-- Question Creation Section -->
+        <div class="card shadow mb-4">
+            <!-- ... (keep the question creation HTML from your code) ... -->
+        </div>
+
+        <!-- Question Bank Section -->
+        <div class="card question-bank-card shadow">
+            <!-- ... (keep the question bank HTML from your code) ... -->
         </div>
     </div>
 
@@ -45,34 +44,213 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-function parseAndSave() {
-    const input = document.getElementById('questionInput').value;
-    const questionBlocks = input.split('\n\n');
-    
-    questionBlocks.forEach(block => {
-        const lines = block.split('\n');
-        const questionText = lines[0].trim();
-        const options = lines.slice(1).map(opt => {
-            return {
-                text: opt.replace(/\*/g, '').trim(),
-                isCorrect: opt.includes('*')
+let listView = 'grid';
+
+// Title Management Functions
+function saveQuizTitle() {
+    // ... (keep your existing title functions)
+}
+
+function clearQuizTitle() {
+    // ... (keep your existing title functions)
+}
+
+// Firebase-powered Question Management
+function renderQuestions(filter = '') {
+    db.collection('quizzes').get().then(snapshot => {
+        const list = document.getElementById('questionsList');
+        const noQuestions = document.getElementById('noQuestions');
+        const filtered = [];
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if(data.question.toLowerCase().includes(filter.toLowerCase())) {
+                filtered.push({
+                    id: doc.id,
+                    question: data.question,
+                    options: data.options.map(opt => opt.text),
+                    correctAnswer: data.options.find(opt => opt.isCorrect)?.text
+                });
             }
         });
+
+        list.innerHTML = filtered.map(q => `
+            <div class="col-md-6 col-lg-4 ${listView === 'list' ? 'col-12' : ''}">
+                <div class="card h-100 question-item">
+                    <div class="card-body d-flex flex-column">
+                        <div class="question-header mb-3">
+                            <h6 class="m-0">${q.question}</h6>
+                        </div>
+                        <div class="answer-list mb-3">
+                            ${q.options.map(opt => 
+                                `<div class="d-flex align-items-center mb-2">
+                                    <span class="badge ${opt === q.correctAnswer ? 
+                                        'bg-success' : 'bg-secondary'} me-2">
+                                        ${opt === q.correctAnswer ? '✓' : ''}
+                                    </span>
+                                    <span>${opt}</span>
+                                </div>`
+                            ).join('')}
+                        </div>
+                        <div class="mt-auto d-flex flex-column gap-2">
+                            <div class="question-stats">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                Correct answer: ${q.correctAnswer}
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-warning btn-action" onclick="copyQuestion('${q.id}')">
+                                    <i class="bi bi-files"></i>
+                                </button>
+                                <button class="btn btn-info btn-action" onclick="previewQuestion('${q.id}')">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <div class="dropdown ms-auto">
+                                    <button class="btn btn-light btn-action" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="editQuestion('${q.id}')">
+                                            <i class="bi bi-pencil-square me-2"></i> Edit
+                                        </a></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteQuestion('${q.id}')">
+                                            <i class="bi bi-trash me-2"></i> Delete
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
         
-        // Save to Firestore
-        db.collection('quizzes').add({
-            question: questionText,
-            options: options,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-    });
-    
-    Swal.fire({
-        icon: 'success',
-        title: 'Quiz Created!',
-        text: 'Your quiz has been successfully saved to Firebase'
+        noQuestions.classList.toggle('d-none', filtered.length > 0);
     });
 }
+
+// CRUD Operations with Firebase
+function handleSave() {
+    const question = document.getElementById('questionText').value.trim();
+    const answersText = document.getElementById('answersArea').value;
+    const rawAnswers = answersText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    if (!validateInput(question, rawAnswers)) return;
+    
+    const options = rawAnswers.map(opt => ({
+        text: opt.replace(/^\*/, '').trim(),
+        isCorrect: opt.startsWith('*')
+    }));
+
+    if (editIndex) {
+        db.collection('quizzes').doc(editIndex).update({
+            question: question,
+            options: options
+        }).then(() => {
+            showToast('Question updated!', 'info');
+            clearForm();
+        });
+    } else {
+        db.collection('quizzes').add({
+            question: question,
+            options: options,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            showToast('Question added!', 'success');
+            clearForm();
+        });
+    }
+}
+
+function editQuestion(id) {
+    db.collection('quizzes').doc(id).get().then(doc => {
+        const data = doc.data();
+        document.getElementById('questionText').value = data.question;
+        document.getElementById('answersArea').value = data.options
+            .map(opt => opt.isCorrect ? `*${opt.text}` : opt.text)
+            .join('\n');
+        editIndex = id;
+        document.querySelector('.btn-primary').innerHTML = 
+            '<i class="bi bi-save me-2"></i> Update Question';
+    });
+}
+
+function deleteQuestion(id) {
+    if (confirm('Are you sure?')) {
+        db.collection('quizzes').doc(id).delete().then(() => {
+            showToast('Question deleted!', 'danger');
+        });
+    }
+}
+
+function copyQuestion(id) {
+    db.collection('quizzes').doc(id).get().then(doc => {
+        const data = doc.data();
+        document.getElementById('questionText').value = data.question + ' (Copy)';
+        document.getElementById('answersArea').value = data.options
+            .map(opt => opt.isCorrect ? `*${opt.text}` : opt.text)
+            .join('\n');
+        showToast('Question copied!', 'info');
+    });
+}
+
+function previewQuestion(id) {
+    db.collection('quizzes').doc(id).get().then(doc => {
+        const data = doc.data();
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Preview</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6>${data.question}</h6>
+                        <div class="mt-3">
+                            ${data.options.map(opt => 
+                                `<div class="form-check">
+                                    <input class="form-check-input" type="radio" disabled 
+                                        ${opt.isCorrect ? 'checked' : ''}>
+                                    <label class="form-check-label">${opt.text}</label>
+                                </div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        modal.addEventListener('hidden.bs.modal', () => modal.remove());
+    });
+}
+
+function generateQuiz() {
+    saveQuizTitle();
+    db.collection('quizzes').get().then(snapshot => {
+        if (snapshot.empty) {
+            showToast('No questions!', 'warning');
+            return;
+        }
+        showToast('Quiz generated!', 'success');
+        setTimeout(() => {
+            window.location.href = 'quiz.html';
+        }, 1500);
+    });
+}
+
+// ... (keep other helper functions like validateInput, showToast, etc.)
+
+// Initialize
+db.collection('quizzes').onSnapshot(() => {
+    renderQuestions(document.getElementById('searchInput').value);
+});
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    renderQuestions(e.target.value);
+});
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
