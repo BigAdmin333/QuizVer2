@@ -4,10 +4,6 @@
     <title>Quiz Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
     <style>
         body {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -126,6 +122,8 @@
 <body class="p-4">
     <!-- Loader -->
     <div id="loader" class="loader"></div>
+
+    <div class="container">
         <!-- Quiz Title Section -->
         <div class="card shadow mb-4 title-section">
             <div class="card-body p-5">
@@ -216,7 +214,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDkvovInia-45QJpz1FS9CEVJ5jc2XkLlE",
   authDomain: "quiz-1111-e7d1a.firebaseapp.com",
   projectId: "quiz-1111-e7d1a",
-  storageBucket: "quiz-1111-e7d1a.firebasestorage.app",
+  storageBucket: "quiz-1111-e7d1a.appspot.com",
   messagingSenderId: "420378130829",
   appId: "1:420378130829:web:3a19a496478f0ce10f65c4",
   measurementId: "G-FP2P2MLTVB"
@@ -224,8 +222,8 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();    
-let listView = 'grid';
+const db = firebase.firestore();
+
 let editDocId = null;
 
 // Loader control
