@@ -4,6 +4,10 @@
     <title>Quiz Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
     <style>
         body {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -120,7 +124,8 @@
     </style>
 </head>
 <body class="p-4">
-    <div class="container">
+    <!-- Loader -->
+    <div id="loader" class="loader"></div>
         <!-- Quiz Title Section -->
         <div class="card shadow mb-4 title-section">
             <div class="card-body p-5">
@@ -219,8 +224,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
+const db = firebase.firestore();    
 let listView = 'grid';
 let editDocId = null;
 
