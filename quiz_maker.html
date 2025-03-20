@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MCQ Quiz Maker</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+</head>
+<body class="bg-gradient-to-r from-purple-500 to-pink-500 min-h-screen">
+    <div class="container mx-auto p-8">
+        <h1 class="text-4xl font-bold text-white mb-8">Quiz Maker</h1>
+        
+        <div class="bg-white rounded-lg shadow-xl p-6">
+            <textarea id="questionInput" 
+                      class="w-full h-48 p-4 border-2 border-gray-300 rounded-lg mb-4"
+                      placeholder="Enter questions in format:
+                      Question text?
+                      . Option 1
+                      . Option 2*
+                      . Option 3
+                      ..."></textarea>
+                      
+            <button onclick="parseAndSave()" 
+                    class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition">
+                Generate Quiz
+            </button>
+        </div>
+    </div>
+
+<script>
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function parseAndSave() {
+    const input = document.getElementById('questionInput').value;
+    const questionBlocks = input.split('\n\n');
+    
+    questionBlocks.forEach(block => {
+        const lines = block.split('\n');
+        const questionText = lines[0].trim();
+        const options = lines.slice(1).map(opt => {
+            return {
+                text: opt.replace(/\*/g, '').trim(),
+                isCorrect: opt.includes('*')
+            }
+        });
+        
+        // Save to Firestore
+        db.collection('quizzes').add({
+            question: questionText,
+            options: options,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    });
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Quiz Created!',
+        text: 'Your quiz has been successfully saved to Firebase'
+    });
+}
+</script>
+</body>
+</html>
