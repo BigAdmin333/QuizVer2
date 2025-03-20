@@ -1,30 +1,112 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Quiz Admin Panel</title>
+    <title>Advanced Quiz Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
     <style>
         /* ... (keep all the CSS from your provided code) ... */
+        /* ADDITIONAL STYLES */
+        .loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            background: linear-gradient(135deg, #4169e1, #6a5acd);
+            color: white;
+            transition: transform 0.3s;
+            transform: translateX(-100%);
+        }
+        .sidebar.active {
+            transform: translateX(0);
+        }
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-nav a {
+            color: white;
+            padding: 15px 20px;
+            display: block;
+            transition: background 0.3s;
+        }
+        .sidebar-nav a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar-toggle {
+            position: fixed;
+            left: 30px;
+            top: 30px;
+            z-index: 1001;
+            color: #4169e1;
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .sidebar {
+                transform: translateX(0);
+            }
+            .sidebar-toggle {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body class="p-4">
-    <div class="container">
+    <!-- Loader -->
+    <div id="loader" class="loader-container">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="adminSidebar">
+        <div class="sidebar-header">
+            <h4>Admin Panel</h4>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" onclick="showSection('title')"><i class="bi bi-pencil-square me-2"></i> Quiz Title</a>
+            <a href="#" onclick="showSection('create')"><i class="bi bi-plus-circle me-2"></i> New Question</a>
+            <a href="#" onclick="showSection('bank')"><i class="bi bi-archive me-2"></i> Question Bank</a>
+            <a href="#" onclick="generateQuiz()"><i class="bi bi-file-earmark-check me-2"></i> Generate Quiz</a>
+        </nav>
+    </div>
+    
+    <!-- Sidebar Toggle -->
+    <button class="btn btn-primary sidebar-toggle" onclick="toggleSidebar()">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <div class="container main-content">
         <!-- Quiz Title Section -->
-        <div class="card shadow mb-4 title-section">
-            <!-- ... (keep the title section HTML from your code) ... -->
+        <div class="card shadow mb-4 title-section" id="titleSection">
+            <!-- ... (keep your existing title section HTML) ... -->
         </div>
 
         <!-- Question Creation Section -->
-        <div class="card shadow mb-4">
-            <!-- ... (keep the question creation HTML from your code) ... -->
+        <div class="card shadow mb-4" id="createSection">
+            <!-- ... (keep your existing question creation HTML) ... -->
         </div>
 
         <!-- Question Bank Section -->
-        <div class="card question-bank-card shadow">
-            <!-- ... (keep the question bank HTML from your code) ... -->
+        <div class="card question-bank-card shadow" id="bankSection">
+            <!-- ... (keep your existing question bank HTML) ... -->
         </div>
     </div>
 
@@ -44,19 +126,38 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+let currentSection = 'title';
 let listView = 'grid';
+let editDocId = null;
+
+// Loader control
+function showLoader() {
+    document.getElementById('loader').style.display = 'flex';
+}
+function hideLoader() {
+    document.getElementById('loader').style.display = 'none';
+}
+
+// Sidebar control
+function toggleSidebar() {
+    document.getElementById('adminSidebar').classList.toggle('active');
+}
+function showSection(section) {
+    document.querySelectorAll('.main-content > div').forEach(el => {
+        el.style.display = 'none';
+    });
+    document.getElementById(`${section}Section`).style.display = 'block';
+    currentSection = section;
+}
 
 // Title Management Functions
 function saveQuizTitle() {
     // ... (keep your existing title functions)
 }
 
-function clearQuizTitle() {
-    // ... (keep your existing title functions)
-}
-
 // Firebase-powered Question Management
 function renderQuestions(filter = '') {
+    showLoader();
     db.collection('quizzes').get().then(snapshot => {
         const list = document.getElementById('questionsList');
         const noQuestions = document.getElementById('noQuestions');
@@ -125,6 +226,7 @@ function renderQuestions(filter = '') {
         `).join('');
         
         noQuestions.classList.toggle('d-none', filtered.length > 0);
+        hideLoader();
     });
 }
 
@@ -141,14 +243,16 @@ function handleSave() {
         isCorrect: opt.startsWith('*')
     }));
 
-    if (editIndex) {
-        db.collection('quizzes').doc(editIndex).update({
+    showLoader();
+    
+    if (editDocId) {
+        db.collection('quizzes').doc(editDocId).update({
             question: question,
             options: options
         }).then(() => {
             showToast('Question updated!', 'info');
             clearForm();
-        });
+        }).finally(hideLoader);
     } else {
         db.collection('quizzes').add({
             question: question,
@@ -157,32 +261,37 @@ function handleSave() {
         }).then(() => {
             showToast('Question added!', 'success');
             clearForm();
-        });
+        }).finally(hideLoader);
     }
 }
 
 function editQuestion(id) {
+    showLoader();
     db.collection('quizzes').doc(id).get().then(doc => {
         const data = doc.data();
         document.getElementById('questionText').value = data.question;
         document.getElementById('answersArea').value = data.options
             .map(opt => opt.isCorrect ? `*${opt.text}` : opt.text)
             .join('\n');
-        editIndex = id;
+        editDocId = id;
         document.querySelector('.btn-primary').innerHTML = 
             '<i class="bi bi-save me-2"></i> Update Question';
+        hideLoader();
+        showSection('create');
     });
 }
 
 function deleteQuestion(id) {
     if (confirm('Are you sure?')) {
+        showLoader();
         db.collection('quizzes').doc(id).delete().then(() => {
             showToast('Question deleted!', 'danger');
-        });
+        }).finally(hideLoader);
     }
 }
 
 function copyQuestion(id) {
+    showLoader();
     db.collection('quizzes').doc(id).get().then(doc => {
         const data = doc.data();
         document.getElementById('questionText').value = data.question + ' (Copy)';
@@ -190,10 +299,13 @@ function copyQuestion(id) {
             .map(opt => opt.isCorrect ? `*${opt.text}` : opt.text)
             .join('\n');
         showToast('Question copied!', 'info');
+        hideLoader();
+        showSection('create');
     });
 }
 
 function previewQuestion(id) {
+    showLoader();
     db.collection('quizzes').doc(id).get().then(doc => {
         const data = doc.data();
         const modal = document.createElement('div');
@@ -224,6 +336,7 @@ function previewQuestion(id) {
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
         modal.addEventListener('hidden.bs.modal', () => modal.remove());
+        hideLoader();
     });
 }
 
@@ -241,14 +354,65 @@ function generateQuiz() {
     });
 }
 
-// ... (keep other helper functions like validateInput, showToast, etc.)
+// Validation and Helpers
+function validateInput(question, answers) {
+    if (!question) {
+        showToast('Question required', 'danger');
+        return false;
+    }
+    if (answers.length < 2) {
+        showToast('Minimum 2 answers', 'danger');
+        return false;
+    }
+    if (!answers.some(ans => ans.startsWith('*'))) {
+        showToast('Mark correct answer', 'danger');
+        return false;
+    }
+    return true;
+}
 
-// Initialize
+function clearForm() {
+    document.getElementById('questionText').value = '';
+    document.getElementById('answersArea').value = '';
+    editDocId = null;
+    document.querySelector('.btn-primary').innerHTML = 
+        '<i class="bi bi-plus-circle me-2"></i> Add Question';
+}
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type} border-0 position-fixed bottom-0 end-0 m-3`;
+    toast.style.zIndex = '1000';
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 3000 });
+    bsToast.show();
+    setTimeout(() => {
+        toast.remove();
+    }, 3500);
+}
+
+// Event Listeners
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    renderQuestions(e.target.value);
+});
+
 db.collection('quizzes').onSnapshot(() => {
     renderQuestions(document.getElementById('searchInput').value);
 });
-document.getElementById('searchInput').addEventListener('input', (e) => {
-    renderQuestions(e.target.value);
+
+// Initialization
+showLoader();
+document.addEventListener('DOMContentLoaded', () => {
+    hideLoader();
+    showSection('title');
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
