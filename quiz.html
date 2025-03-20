@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MCQ Quiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-500 to-indigo-500 min-h-screen">
+    <div class="container mx-auto p-8">
+        <h1 class="text-4xl font-bold text-white mb-8">Take Quiz</h1>
+        
+        <div id="quizContainer" class="hidden">
+            <div id="questionCard" class="bg-white rounded-lg shadow-xl p-6 mb-8">
+                <h2 id="questionText" class="text-2xl font-semibold mb-4"></h2>
+                <div id="optionsContainer" class="space-y-4"></div>
+            </div>
+            
+            <div class="flex justify-between">
+                <button id="prevBtn" class="bg-gray-300 px-6 py-3 rounded-lg">Previous</button>
+                <button id="nextBtn" class="bg-blue-500 text-white px-6 py-3 rounded-lg">Next</button>
+                <button id="submitBtn" class="bg-red-500 text-white px-6 py-3 rounded-lg">Submit</button>
+            </div>
+        </div>
+        
+        <div id="resultContainer" class="hidden">
+            <div class="bg-white rounded-lg shadow-xl p-6 text-center">
+                <h2 class="text-3xl font-bold mb-4">Results</h2>
+                <p id="scoreText" class="text-2xl text-green-500 mb-8"></p>
+                <button onclick="location.reload()" 
+                        class="bg-purple-500 text-white px-6 py-3 rounded-lg">
+                    Retake Quiz
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let questions = [];
+let currentQuestion = 0;
+let score = 0;
+let userAnswers = [];
+
+// Shuffle function
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+// Load questions from Firebase
+db.collection('quizzes').get().then(snapshot => {
+    questions = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const shuffledOptions = [...data.options];
+        shuffleArray(shuffledOptions);
+        return {
+            question: data.question,
+            options: shuffledOptions
+        };
+    });
+    shuffleArray(questions);
+    showQuestion();
+    document.getElementById('quizContainer').classList.remove('hidden');
+});
+
+function showQuestion() {
+    const question = questions[currentQuestion];
+    document.getElementById('questionText').innerText = question.question;
+    
+    const optionsContainer = document.getElementById('optionsContainer');
+    optionsContainer.innerHTML = '';
+    
+    question.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.className = 'w-full bg-white border-2 border-gray-300 rounded-lg p-4 hover:border-blue-500 transition';
+        button.innerText = option.text;
+        button.onclick = () => selectOption(index);
+        optionsContainer.appendChild(button);
+    });
+    
+    // Show selected answer
+    if(userAnswers[currentQuestion] !== undefined) {
+        document.querySelectorAll('#optionsContainer button')[userAnswers[currentQuestion]].classList.add('border-blue-500', 'border-4');
+    }
+}
+
+function selectOption(index) {
+    userAnswers[currentQuestion] = index;
+    showQuestion();
+}
+
+// Navigation buttons
+document.getElementById('prevBtn').addEventListener('click', () => {
+    if(currentQuestion > 0) currentQuestion--;
+    showQuestion();
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+    if(currentQuestion < questions.length - 1) currentQuestion++;
+    showQuestion();
+});
+
+document.getElementById('submitBtn').addEventListener('click', () => {
+    // Calculate score
+    score = userAnswers.reduce((acc, answer, index) => {
+        return acc + (questions[index].options[answer].isCorrect ? 1 : 0);
+    }, 0);
+    
+    // Show results
+    document.getElementById('quizContainer').classList.add('hidden');
+    document.getElementById('resultContainer').classList.remove('hidden');
+    document.getElementById('scoreText').innerText = `You scored ${score}/${questions.length}`;
+    
+    // Show feedback
+    Swal.fire({
+        title: 'Quiz Results',
+        html: `
+            <div class="text-left">
+                <p class="text-xl mb-4">Score: ${score}/${questions.length}</p>
+                ${questions.map((q, i) => `
+                    <div class="mb-4">
+                        <p class="font-semibold">${q.question}</p>
+                        <p class="${userAnswers[i] !== undefined && q.options[userAnswers[i]].isCorrect ? 'text-green-500' : 'text-red-500'}">
+                            Your answer: ${q.options[userAnswers[i]]?.text || 'Not answered'}
+                        </p>
+                        <p class="text-green-500">Correct answer: ${q.options.find(opt => opt.isCorrect).text}</p>
+                    </div>
+                `).join('')}
+            </div>
+        `,
+        confirmButtonText: 'Close'
+    });
+});
+</script>
+</body>
+</html>
