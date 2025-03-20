@@ -5,118 +5,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-        }
-        .card {
-            border: none;
-            border-radius: 18px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-        }
-        .form-control {
-            border-radius: 24px;
-            padding-left: 20px;
-            border: 2px solid #e9ecef;
-            transition: border-color 0.3s;
-        }
-        .form-control:focus {
-            border-color: #4169e1;
-            box-shadow: 0 0 0 2px rgba(65, 105, 225, 0.2);
-        }
-        .btn-action {
-            width: 44px;
-            height: 44px;
-            padding: 0;
-            border-radius: 12px;
-            transition: all 0.2s;
-        }
-        .btn-action:hover {
-            transform: scale(1.1);
-        }
-        #answersArea {
-            min-height: 250px;
-            max-height: 400px;
-            resize: vertical;
-            margin-top: 1rem;
-        }
-        .question-item {
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .question-item:hover {
-            transform: scale(1.03);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .badge-answer {
-            border-radius: 16px;
-            padding: 6px 14px;
-            font-weight: 500;
-            transition: transform 0.2s;
-        }
-        .badge-answer:hover {
-            transform: scale(1.05);
-        }
-        .question-bank-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f0f2f5 100%);
-            border-radius: 24px;
-            padding: 2rem;
-        }
-        .question-header {
-            background: linear-gradient(90deg, #4169e1, #6a5acd);
-            color: white;
-            border-radius: 12px 12px 0 0;
-            padding: 1.25rem;
-        }
-        .answer-list {
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        .answer-list::-webkit-scrollbar {
-            width: 8px;
-        }
-        .answer-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .answer-list::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        .question-stats {
-            background: #e9ecef;
-            border-radius: 12px;
-            padding: 0.75rem;
-            font-size: 0.875rem;
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4169e1;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: none;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* New Title Section Styles */
-        .title-section {
-            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
-            border-radius: 15px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        .title-input {
-            font-size: 1.5rem;
-            font-weight: 600;
-            border: 2px solid #ff9800;
-        }
+        /* ... (keep your existing CSS styles) ... */
     </style>
 </head>
 <body class="p-4">
@@ -208,138 +97,30 @@
         </div>
     </div>
 
-<script>
-// Firebase Configuration
+<script type="module">
+// 1. IMPORT FIREBASE MODULES CORRECTLY
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+// 2. INITIALIZE FIREBASE FIRST
 const firebaseConfig = {
   apiKey: "AIzaSyDkvovInia-45QJpz1FS9CEVJ5jc2XkLlE",
   authDomain: "quiz-1111-e7d1a.firebaseapp.com",
   projectId: "quiz-1111-e7d1a",
   storageBucket: "quiz-1111-e7d1a.appspot.com",
   messagingSenderId: "420378130829",
-  appId: "1:420378130829:web:3a19a496478f0ce10f65c4",
-  measurementId: "G-FP2P2MLTVB"
+  appId: "1:420378130829:web:3a19a496478f0ce10f65c4"
 };
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
+// 3. DECLARE VARIABLES EARLIER
 let editDocId = null;
+let listView = 'grid';
 
-// Loader control
-function showLoader() {
-    document.getElementById('loader').style.display = 'flex';
-}
-function hideLoader() {
-    document.getElementById('loader').style.display = 'none';
-}
-
-// Sidebar control
-function toggleSidebar() {
-    document.getElementById('adminSidebar').classList.toggle('active');
-}
-function showSection(section) {
-    document.querySelectorAll('.main-content > div').forEach(el => {
-        el.style.display = 'none';
-    });
-    document.getElementById(`${section}Section`).style.display = 'block';
-    currentSection = section;
-}
-
-// Title Management Functions
-function saveQuizTitle() {
-    const title = document.getElementById('quizTitle').value.trim();
-    if (title) {
-        localStorage.setItem('quizTitle', title);
-        showToast('Quiz title saved!', 'success');
-    } else {
-        showToast('Title cannot be empty', 'danger');
-    }
-}
-
-function clearQuizTitle() {
-    localStorage.removeItem('quizTitle');
-    document.getElementById('quizTitle').value = 'Quiz Application';
-    showToast('Title reset to default!', 'info');
-}
-
-// Firebase-powered Question Management
-function renderQuestions(filter = '') {
-    showLoader();
-    db.collection('quizzes').get().then(snapshot => {
-        const list = document.getElementById('questionsList');
-        const noQuestions = document.getElementById('noQuestions');
-        const filtered = [];
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if(data.question.toLowerCase().includes(filter.toLowerCase())) {
-                filtered.push({
-                    id: doc.id,
-                    question: data.question,
-                    options: data.options.map(opt => opt.text),
-                    correctAnswer: data.options.find(opt => opt.isCorrect)?.text
-                });
-            }
-        });
-
-        list.innerHTML = filtered.map(q => `
-            <div class="col-md-6 col-lg-4 ${listView === 'list' ? 'col-12' : ''}">
-                <div class="card h-100 question-item">
-                    <div class="card-body d-flex flex-column">
-                        <div class="question-header mb-3">
-                            <h6 class="m-0">${q.question}</h6>
-                        </div>
-                        <div class="answer-list mb-3">
-                            ${q.options.map(opt => 
-                                `<div class="d-flex align-items-center mb-2">
-                                    <span class="badge ${opt === q.correctAnswer ? 
-                                        'bg-success' : 'bg-secondary'} me-2">
-                                        ${opt === q.correctAnswer ? '✓' : ''}
-                                    </span>
-                                    <span>${opt}</span>
-                                </div>`
-                            ).join('')}
-                        </div>
-                        <div class="mt-auto d-flex flex-column gap-2">
-                            <div class="question-stats">
-                                <i class="bi bi-check-circle-fill me-2"></i>
-                                Correct answer: ${q.correctAnswer}
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-warning btn-action" onclick="copyQuestion('${q.id}')">
-                                    <i class="bi bi-files"></i>
-                                </button>
-                                <button class="btn btn-info btn-action" onclick="previewQuestion('${q.id}')">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <div class="dropdown ms-auto">
-                                    <button class="btn btn-light btn-action" data-bs-toggle="dropdown">
-                                        <i class="bi bi-three-dots-vertical"></i>
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="#" onclick="editQuestion('${q.id}')">
-                                            <i class="bi bi-pencil-square me-2"></i> Edit
-                                        </a></li>
-                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteQuestion('${q.id}')">
-                                            <i class="bi bi-trash me-2"></i> Delete
-                                        </a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        
-        noQuestions.classList.toggle('d-none', filtered.length > 0);
-        hideLoader();
-    });
-}
-
-// CRUD Operations with Firebase
-function handleSave() {
+// 4. FIX FIREBASE FUNCTIONS
+async function handleSave() {
     const question = document.getElementById('questionText').value.trim();
     const answersText = document.getElementById('answersArea').value;
     const rawAnswers = answersText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
@@ -351,177 +132,68 @@ function handleSave() {
         isCorrect: opt.startsWith('*')
     }));
 
-    showLoader();
-    
-    if (editDocId) {
-        db.collection('quizzes').doc(editDocId).update({
-            question: question,
-            options: options
-        }).then(() => {
+    try {
+        if (editDocId) {
+            await updateDoc(doc(db, "quizzes", editDocId), {
+                question: question,
+                options: options
+            });
             showToast('Question updated!', 'info');
-            clearForm();
-        }).finally(hideLoader);
-    } else {
-        db.collection('quizzes').add({
-            question: question,
-            options: options,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
+        } else {
+            await addDoc(collection(db, "quizzes"), {
+                question: question,
+                options: options,
+                timestamp: new Date()
+            });
             showToast('Question added!', 'success');
-            clearForm();
-        }).finally(hideLoader);
-    }
-}
-
-function editQuestion(id) {
-    showLoader();
-    db.collection('quizzes').doc(id).get().then(doc => {
-        const data = doc.data();
-        document.getElementById('questionText').value = data.question;
-        document.getElementById('answersArea').value = data.options
-            .map(opt => opt.isCorrect ? `*${opt.text}` : opt.text)
-            .join('\n');
-        editDocId = id;
-        document.querySelector('.btn-primary').innerHTML = 
-            '<i class="bi bi-save me-2"></i> Update Question';
-        hideLoader();
-        showSection('create');
-    });
-}
-
-function deleteQuestion(id) {
-    if (confirm('Are you sure?')) {
-        showLoader();
-        db.collection('quizzes').doc(id).delete().then(() => {
-            showToast('Question deleted!', 'danger');
-        }).finally(hideLoader);
-    }
-}
-
-function copyQuestion(id) {
-    showLoader();
-    db.collection('quizzes').doc(id).get().then(doc => {
-        const data = doc.data();
-        document.getElementById('questionText').value = data.question + ' (Copy)';
-        document.getElementById('answersArea').value = data.options
-            .map(opt => opt.isCorrect ? `*${opt.text}` : opt.text)
-            .join('\n');
-        showToast('Question copied!', 'info');
-        hideLoader();
-        showSection('create');
-    });
-}
-
-function previewQuestion(id) {
-    showLoader();
-    db.collection('quizzes').doc(id).get().then(doc => {
-        const data = doc.data();
-        const modal = document.createElement('div');
-        modal.className = 'modal fade';
-        modal.innerHTML = `
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Preview</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <h6>${data.question}</h6>
-                        <div class="mt-3">
-                            ${data.options.map(opt => 
-                                `<div class="form-check">
-                                    <input class="form-check-input" type="radio" disabled 
-                                        ${opt.isCorrect ? 'checked' : ''}>
-                                    <label class="form-check-label">${opt.text}</label>
-                                </div>`
-                            ).join('')}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
-        modal.addEventListener('hidden.bs.modal', () => modal.remove());
-        hideLoader();
-    });
-}
-
-function generateQuiz() {
-    saveQuizTitle();
-    db.collection('quizzes').get().then(snapshot => {
-        if (snapshot.empty) {
-            showToast('No questions!', 'warning');
-            return;
         }
-        showToast('Quiz generated!', 'success');
-        setTimeout(() => {
-            window.location.href = 'quiz.html';
-        }, 1500);
-    });
+        clearForm();
+    } catch (error) {
+        showToast('Error saving question', 'danger');
+    }
 }
 
-// Validation and Helpers
-function validateInput(question, answers) {
-    if (!question) {
-        showToast('Question required', 'danger');
-        return false;
-    }
-    if (answers.length < 2) {
-        showToast('Minimum 2 answers', 'danger');
-        return false;
-    }
-    if (!answers.some(ans => ans.startsWith('*'))) {
-        showToast('Mark correct answer', 'danger');
-        return false;
-    }
-    return true;
-}
-
-function clearForm() {
-    document.getElementById('questionText').value = '';
-    document.getElementById('answersArea').value = '';
-    editDocId = null;
+// 5. UPDATE OTHER FIREBASE FUNCTIONS
+async function editQuestion(id) {
+    const docRef = doc(db, "quizzes", id);
+    const docSnap = await getDoc(docRef);
+    const data = docSnap.data();
+    
+    document.getElementById('questionText').value = data.question;
+    document.getElementById('answersArea').value = data.options
+        .map(opt => opt.isCorrect ? `*${opt.text}` : opt.text)
+        .join('\n');
+    editDocId = id;
     document.querySelector('.btn-primary').innerHTML = 
-        '<i class="bi bi-plus-circle me-2"></i> Add Question';
+        '<i class="bi bi-save me-2"></i> Update Question';
 }
 
-function showToast(message, type) {
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type} border-0 position-fixed bottom-0 end-0 m-3`;
-    toast.style.zIndex = '1000';
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    document.body.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 3000 });
-    bsToast.show();
+async function deleteQuestion(id) {
+    if (confirm('Are you sure?')) {
+        await deleteDoc(doc(db, "quizzes", id));
+        showToast('Question deleted!', 'danger');
+    }
+}
+
+async function generateQuiz() {
+    saveQuizTitle();
+    const querySnapshot = await getDocs(collection(db, "quizzes"));
+    if (querySnapshot.empty) {
+        showToast('No questions!', 'warning');
+        return;
+    }
+    showToast('Quiz generated!', 'success');
     setTimeout(() => {
-        toast.remove();
-    }, 3500);
+        window.location.href = 'quiz.html';
+    }, 1500);
 }
 
-// Event Listeners
-document.getElementById('searchInput').addEventListener('input', (e) => {
-    renderQuestions(e.target.value);
-});
-
-db.collection('quizzes').onSnapshot(() => {
+// 6. ADD REAL-TIME SYNC
+onSnapshot(collection(db, "quizzes"), (snapshot) => {
     renderQuestions(document.getElementById('searchInput').value);
 });
 
-// Initialization
-showLoader();
-document.addEventListener('DOMContentLoaded', () => {
-    hideLoader();
-    showSection('title');
-});
+// ... (keep other functions like renderQuestions, validateInput, etc.)
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
